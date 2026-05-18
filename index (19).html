@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CITYSTYLE — Premium Beauty Studio Prague</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@200;300;400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<style>
+  :root {
+    --gold: #e6bda2;
+    --gold-light: #f5dcc8;
+    --gold-deep: #c49a78;
+    --rose: #ffb6c1;
+    --rose-deep: #e8768a;
+    --black: #080608;
+    --dark: #0d0b0e;
+    --dark2: #131016;
+    --mid: #1e1a22;
+    --text: #f0e8e0;
+    --muted: #8a7a72;
+    --wire: #ff8fa8;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    overflow-x: hidden;
+    scroll-behavior: auto;
+  }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── CANVAS ── */
+  #canvas-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+  }
+  #canvas-container canvas { display: block; }
+
+  /* ── NOISE OVERLAY ── */
+  #noise {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px 200px;
+  }
+
+  /* ── DIAGONAL PARTICLE CANVAS ── */
+  #particle-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  /* ── CONTENT LAYER ── */
+  #content {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 48px;
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    background: rgba(8,6,8,0.55);
+    border-bottom: 1px solid rgba(230,189,162,0.1);
+    transition: all 0.4s;
+  }
+
+  .nav-logo {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-decoration: none;
+    position: relative;
+  }
+  .nav-logo::after {
+    content: '®';
+    font-size: 0.5em;
+    vertical-align: super;
+    margin-left: 4px;
+    color: var(--gold-deep);
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .lang-switcher {
+    display: flex;
+    gap: 2px;
+    background: rgba(230,189,162,0.07);
+    border: 1px solid rgba(230,189,162,0.15);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .lang-btn {
+    padding: 6px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .lang-btn.active, .lang-btn:hover {
+    background: rgba(230,189,162,0.15);
+    color: var(--gold);
+  }
+
+  .nav-cta {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--black);
+    background: var(--gold);
+    border: none;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+  .nav-cta:hover {
+    background: var(--gold-light);
+    transform: translateY(-1px);
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    position: relative;
+    min-height: 100vh;
+  }
+
+  /* ── HERO ── */
+  #hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 100vh;
+    padding: 0 24px;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: var(--gold-deep);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .hero-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3.5rem, 10vw, 9rem);
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 24px;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .hero-title .accent {
+    color: var(--gold);
+    font-style: italic;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.1em;
+  }
+
+  .hero-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+    color: var(--muted);
+    font-style: italic;
+    letter-spacing: 0.05em;
+    max-width: 500px;
+    margin: 0 auto 48px;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .hero-scroll-hint {
+    position: absolute;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, transparent, var(--gold));
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.2); }
+  }
+  .scroll-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  /* ── INTRO ── */
+  #intro {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 48px;
+    min-height: 80vh;
+  }
+  .intro-inner {
+    max-width: 900px;
+  }
+  .intro-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.35em;
+    color: var(--gold-deep);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .intro-tag::before {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--gold-deep);
+  }
+  .intro-statement {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2rem, 4.5vw, 3.8rem);
+    line-height: 1.3;
+    color: var(--text);
+    font-style: italic;
+  }
+  .intro-statement strong {
+    font-weight: 600;
+    font-style: normal;
+    color: var(--gold);
+  }
+
+  /* ── SERVICES (BENTO) ── */
+  #services {
+    padding: 80px 0;
+    min-height: 100vh;
+  }
+  .services-header {
+    padding: 0 48px;
+    margin-bottom: 60px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .services-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 200;
+    font-size: clamp(2rem, 5vw, 4rem);
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .services-title span {
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .services-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    padding-bottom: 8px;
+  }
+
+  /* Bento grid */
+  .bento-wrapper {
+    padding: 0 32px;
+    will-change: transform;
+  }
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: auto;
+    gap: 16px;
+  }
+
+  .bento-card {
+    background: var(--dark2);
+    border: 1px solid rgba(230,189,162,0.08);
+    border-radius: 4px;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transform-style: preserve-3d;
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  .bento-card:hover {
+    border-color: rgba(230,189,162,0.25);
+    box-shadow: 0 0 60px rgba(230,189,162,0.05), inset 0 0 40px rgba(230,189,162,0.02);
+  }
+  .bento-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(230,189,162,0.06) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  .bento-card:hover::before { opacity: 1; }
+
+  .bento-card.span-7 { grid-column: span 7; }
+  .bento-card.span-5 { grid-column: span 5; }
+  .bento-card.span-4 { grid-column: span 4; }
+  .bento-card.span-8 { grid-column: span 8; }
+  .bento-card.span-12 { grid-column: span 12; }
+  .bento-card.span-6 { grid-column: span 6; }
+
+  .card-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: var(--gold-deep);
+    margin-bottom: 24px;
+  }
+  .card-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 400;
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .card-desc {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--muted);
+    font-style: italic;
+    filter: blur(6px);
+    transition: filter 0.6s;
+  }
+  .bento-card:hover .card-desc { filter: blur(0); color: rgba(240,232,224,0.75); }
+
+  .card-price {
+    margin-top: 32px;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 200;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+  }
+
+  .card-icon {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    font-size: 2.5rem;
+    opacity: 0.15;
+    line-height: 1;
+  }
+
+  .card-accent-line {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--gold), var(--rose));
+    transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .bento-card:hover .card-accent-line { width: 100%; }
+
+  /* large feature card styling */
+  .bento-card.feature {
+    background: linear-gradient(135deg, var(--dark2) 0%, rgba(230,189,162,0.04) 100%);
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .card-bg-text {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: clamp(4rem, 8vw, 8rem);
+    color: rgba(230,189,162,0.04);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    user-select: none;
+  }
+
+  /* ── DATA PULSE LABELS ── */
+  .data-pulse {
+    position: fixed;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: var(--rose);
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    text-shadow: 0 0 8px var(--rose);
+    white-space: nowrap;
+  }
+
+  /* ── DIAGONAL PULSE LINES (CSS) ── */
+  .diag-line {
+    position: fixed;
+    width: 1px;
+    height: 120px;
+    background: linear-gradient(to top, transparent, var(--rose), transparent);
+    transform: rotate(-45deg);
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+  }
+
+  /* ── SPECIALISTS ── */
+  #specialists {
+    padding: 120px 48px;
+  }
+  .spec-header {
+    margin-bottom: 80px;
+  }
+  .spec-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.35em;
+    color: var(--gold-deep);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .spec-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 200;
+    font-size: clamp(2rem, 4.5vw, 3.5rem);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .spec-title strong {
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .specialists-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .spec-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    aspect-ratio: 3/4;
+    background: var(--dark2);
+    border: 1px solid rgba(230,189,162,0.08);
+    cursor: pointer;
+  }
+
+  .spec-bg {
+    position: absolute;
+    inset: 0;
+    transition: filter 0.6s, transform 0.6s;
+    filter: grayscale(1) brightness(0.6);
+  }
+  .spec-card:hover .spec-bg {
+    filter: grayscale(0) brightness(0.85);
+    transform: scale(1.04);
+  }
+
+  /* Gradient portraits using CSS */
+  .spec-bg.s1 {
+    background: radial-gradient(ellipse 60% 80% at 50% 30%, #c49a78 0%, #8a6248 40%, #2d1f18 100%);
+  }
+  .spec-bg.s2 {
+    background: radial-gradient(ellipse 60% 80% at 50% 30%, #e8768a 0%, #b04060 40%, #1e1020 100%);
+  }
+  .spec-bg.s3 {
+    background: radial-gradient(ellipse 60% 80% at 50% 30%, #a0b4c8 0%, #607080 40%, #181820 100%);
+  }
+
+  /* Abstract face shapes */
+  .spec-bg::after {
+    content: '';
+    position: absolute;
+    width: 100px;
+    height: 140px;
+    background: inherit;
+    border-radius: 50% 50% 45% 45%;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    filter: blur(8px);
+    opacity: 0.6;
+  }
+
+  .spec-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 32px;
+    background: linear-gradient(to top, rgba(8,6,8,0.95) 0%, transparent 100%);
+    transform: translateY(20px);
+    transition: transform 0.4s;
+  }
+  .spec-card:hover .spec-overlay { transform: translateY(0); }
+
+  .spec-name {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .spec-role {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 0.95rem;
+    color: var(--gold);
+    font-style: italic;
+    margin-bottom: 16px;
+  }
+  .spec-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .spec-tag-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.15em;
+    color: var(--black);
+    background: var(--gold);
+    padding: 4px 10px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .spec-card:hover .spec-tag-pill { opacity: 1; transform: translateY(0); }
+  .spec-card:hover .spec-tag-pill:nth-child(2) { transition-delay: 0.05s; }
+  .spec-card:hover .spec-tag-pill:nth-child(3) { transition-delay: 0.1s; }
+
+  /* ── MAP ── */
+  #location {
+    padding: 120px 48px;
+    background: var(--dark);
+  }
+  .loc-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .loc-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 200;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 40px;
+  }
+  .loc-title strong { color: var(--gold); font-weight: 700; }
+  .loc-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .loc-item {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .loc-item-icon {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(230,189,162,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    color: var(--gold);
+  }
+  .loc-item-text p {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1rem;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.6;
+  }
+  .loc-item-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--gold-deep);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .map-wrapper {
+    border: 1px solid rgba(230,189,162,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    height: 420px;
+    position: relative;
+  }
+  .map-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    filter: invert(0.9) hue-rotate(180deg) saturate(0.5) brightness(0.85);
+  }
+  .map-overlay-tag {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    background: rgba(8,6,8,0.85);
+    border: 1px solid rgba(230,189,162,0.2);
+    padding: 8px 14px;
+    z-index: 10;
+    text-transform: uppercase;
+  }
+
+  /* ── BOOKING ── */
+  #booking {
+    padding: 160px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  #booking::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(230,189,162,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .booking-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    color: var(--gold-deep);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+  .booking-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.5rem, 7vw, 7rem);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    margin-bottom: 24px;
+  }
+  .booking-title .line2 {
+    color: var(--gold);
+    font-style: italic;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.15em;
+    display: block;
+  }
+  .booking-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.3rem;
+    color: var(--muted);
+    font-style: italic;
+    max-width: 480px;
+    margin: 0 auto 64px;
+    line-height: 1.6;
+  }
+
+  .booking-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--black);
+    background: var(--gold);
+    border: none;
+    padding: 20px 48px;
+    cursor: pointer;
+    transition: all 0.4s;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .booking-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gold-light);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+  .booking-btn:hover::before { transform: translateX(0); }
+  .booking-btn span { position: relative; }
+  .booking-btn:hover { transform: translateY(-2px); box-shadow: 0 20px 60px rgba(230,189,162,0.2); }
+  .btn-arrow { font-size: 1.1em; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--dark2);
+    border-top: 1px solid rgba(230,189,162,0.08);
+    padding: 80px 48px 48px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 64px;
+    margin-bottom: 64px;
+  }
+  .footer-brand-name {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+  .footer-brand-desc {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-style: italic;
+    max-width: 280px;
+  }
+  .footer-col-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: var(--gold-deep);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .footer-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .footer-links li a {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links li a:hover { color: var(--gold); }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 32px;
+    border-top: 1px solid rgba(230,189,162,0.06);
+  }
+  .footer-copy {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .footer-legal {
+    display: flex;
+    gap: 24px;
+  }
+  .footer-legal a {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+  }
+  .footer-legal a:hover { color: var(--gold); }
+
+  /* ── SCROLL INDICATOR ── */
+  .scroll-progress {
+    position: fixed;
+    top: 0; left: 0;
+    width: 0%;
+    height: 2px;
+    background: linear-gradient(to right, var(--gold), var(--rose));
+    z-index: 200;
+    transition: width 0.1s;
+  }
+
+  /* ── ANIMATIONS ── */
+  .reveal-up {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 20px 24px; }
+    .nav-right { gap: 16px; }
+    .nav-cta { display: none; }
+    .bento-card.span-7, .bento-card.span-5, .bento-card.span-4,
+    .bento-card.span-8, .bento-card.span-6 { grid-column: span 12; }
+    .specialists-grid { grid-template-columns: 1fr; gap: 16px; }
+    .spec-card { aspect-ratio: 4/3; }
+    .loc-inner { grid-template-columns: 1fr; gap: 40px; }
+    .footer-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
+    .services-header { flex-direction: column; align-items: flex-start; gap: 16px; padding: 0 24px; }
+    #intro, #specialists, #location, #booking, footer { padding-left: 24px; padding-right: 24px; }
+    .bento-wrapper { padding: 0 16px; }
+    .booking-title { font-size: clamp(2rem, 10vw, 4rem); }
+  }
+
+  @media (max-width: 600px) {
+    .footer-grid { grid-template-columns: 1fr; }
+    .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Scroll progress -->
+<div class="scroll-progress" id="scroll-progress"></div>
+
+<!-- Noise overlay -->
+<div id="noise"></div>
+
+<!-- WebGL Canvas -->
+<div id="canvas-container"></div>
+
+<!-- Particle canvas -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- Data pulse labels -->
+<div class="data-pulse" id="dp1">PREMIUM NAILS</div>
+<div class="data-pulse" id="dp2">BROW ART</div>
+<div class="data-pulse" id="dp3">GLOW SKIN</div>
+<div class="data-pulse" id="dp4">CITYSTYLE PRAGUE</div>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <a href="#" class="nav-logo" data-i18n="brand">CITYSTYLE</a>
+  <div class="nav-right">
+    <div class="lang-switcher">
+      <button class="lang-btn active" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="cz">CZ</button>
+      <button class="lang-btn" data-lang="ru">RU</button>
+    </div>
+    <a href="#booking" class="nav-cta" data-i18n="book_now">BOOK NOW</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<div id="content">
+
+  <!-- HERO -->
+  <section id="hero">
+    <p class="hero-eyebrow" id="hero-eyebrow" data-i18n="hero_eyebrow">Prague · Karlovo Náměstí · Est. 2019</p>
+    <h1 class="hero-title" id="hero-title">
+      CITY<br><span class="accent" data-i18n="hero_accent">Style</span>
+    </h1>
+    <p class="hero-sub" id="hero-sub" data-i18n="hero_sub">Premium Nail, Brow &amp; Aesthetics Studio in the heart of Prague</p>
+    <div class="hero-scroll-hint" id="hero-scroll">
+      <div class="scroll-line"></div>
+      <span class="scroll-label" data-i18n="scroll">SCROLL</span>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section id="intro">
+    <div class="intro-inner">
+      <div class="intro-tag" data-i18n="intro_tag">Our Philosophy</div>
+      <p class="intro-statement">
+        <span data-i18n="intro_p1">Where urban edge meets <strong>artisan precision</strong>. CityStyle is Prague's most elevated beauty destination—</span><em data-i18n="intro_p2"> a sanctuary where modern aesthetics become a form of personal architecture.</em>
+      </p>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="services">
+    <div class="services-header">
+      <h2 class="services-title" data-i18n="services_title">Our <span>Services</span></h2>
+      <span class="services-num">03 COLLECTIONS</span>
+    </div>
+
+    <div class="bento-wrapper" id="bento-wrapper">
+      <div class="bento-grid">
+
+        <!-- Card 1: Large feature -->
+        <div class="bento-card span-7 feature" id="bc1" data-tilt>
+          <div class="card-bg-text">NAIL</div>
+          <div class="card-num">01 / NAILS</div>
+          <h3 class="card-title" data-i18n="c1_title">Premium Nail Architecture</h3>
+          <p class="card-desc" data-i18n="c1_desc">Sculptural gel extensions, nano-seal chrome powder, intricate hand-painted nail art. Each set engineered with precision tools and medical-grade materials for lasting brilliance.</p>
+          <div class="card-price" data-i18n="c1_price">FROM 1 200 CZK · 60–120 MIN</div>
+          <div class="card-accent-line"></div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bento-card span-5" id="bc2" data-tilt>
+          <div class="card-icon">✦</div>
+          <div class="card-num">02 / BROWS</div>
+          <h3 class="card-title" data-i18n="c2_title">Brow &amp; Lash Design</h3>
+          <p class="card-desc" data-i18n="c2_desc">Microblading, hybrid powder brows, lamination and tinting. Sculpted with golden-ratio geometry for your unique facial architecture.</p>
+          <div class="card-price" data-i18n="c2_price">FROM 2 800 CZK · 90–150 MIN</div>
+          <div class="card-accent-line"></div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bento-card span-4" id="bc3" data-tilt>
+          <div class="card-icon">◈</div>
+          <div class="card-num">03 / SKIN</div>
+          <h3 class="card-title" data-i18n="c3_title">Advanced Aesthetics</h3>
+          <p class="card-desc" data-i18n="c3_desc">HydraFacial, microneedling, LED therapy, dermaplaning. Clinical-grade treatments delivering visible, lasting transformation.</p>
+          <div class="card-price" data-i18n="c3_price">FROM 2 200 CZK · 60–90 MIN</div>
+          <div class="card-accent-line"></div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bento-card span-8" id="bc4" data-tilt>
+          <div class="card-num">04 / GLOW</div>
+          <h3 class="card-title" data-i18n="c4_title">The CityStyle Ritual</h3>
+          <p class="card-desc" data-i18n="c4_desc">Our signature full-body treatment combining exfoliation, paraffin immersion, bespoke facial, nail sculpt and brow design in one curated 4-hour journey. The complete metamorphosis.</p>
+          <div class="card-price" data-i18n="c4_price">8 500 CZK · THE COMPLETE EXPERIENCE</div>
+          <div class="card-accent-line"></div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="bento-card span-6" id="bc5" data-tilt>
+          <div class="card-icon">⬡</div>
+          <div class="card-num">05 / LASH</div>
+          <h3 class="card-title" data-i18n="c5_title">Lash Architecture</h3>
+          <p class="card-desc" data-i18n="c5_desc">Volume, mega-volume, hybrid and classic extensions. Russian volume fans, wet-look and Kim-K sets. Korean lash lift & tint.</p>
+          <div class="card-price" data-i18n="c5_price">FROM 1 800 CZK · 90 MIN</div>
+          <div class="card-accent-line"></div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="bento-card span-6" id="bc6" data-tilt>
+          <div class="card-icon">✿</div>
+          <div class="card-num">06 / CARE</div>
+          <h3 class="card-title" data-i18n="c6_title">Luxury Hand &amp; Foot Ritual</h3>
+          <p class="card-desc" data-i18n="c6_desc">Spa manicure and pedicure with marine collagen treatments, paraffin baths, and precision shaping. Pure indulgence, clinical results.</p>
+          <div class="card-price" data-i18n="c6_price">FROM 980 CZK · 60 MIN</div>
+          <div class="card-accent-line"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SPECIALISTS -->
+  <section id="specialists">
+    <div class="spec-header">
+      <div class="spec-tag" data-i18n="spec_tag">The Team</div>
+      <h2 class="spec-title" data-i18n="spec_title">Our <strong>Specialists</strong></h2>
+    </div>
+    <div class="specialists-grid">
+
+      <div class="spec-card">
+        <div class="spec-bg s1"></div>
+        <div class="spec-overlay">
+          <div class="spec-name">Tereza Nováková</div>
+          <div class="spec-role" data-i18n="spec1_role">Lead Nail Architect</div>
+          <div class="spec-skills">
+            <span class="spec-tag-pill">GEL ART</span>
+            <span class="spec-tag-pill">CHROME</span>
+            <span class="spec-tag-pill">SCULPT</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-bg s2"></div>
+        <div class="spec-overlay">
+          <div class="spec-name">Anastasiya Koval</div>
+          <div class="spec-role" data-i18n="spec2_role">Senior Brow Designer</div>
+          <div class="spec-skills">
+            <span class="spec-tag-pill">MICROBLADING</span>
+            <span class="spec-tag-pill">POWDER</span>
+            <span class="spec-tag-pill">LASH</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-bg s3"></div>
+        <div class="spec-overlay">
+          <div class="spec-name">Barbora Horáková</div>
+          <div class="spec-role" data-i18n="spec3_role">Aesthetics Specialist</div>
+          <div class="spec-skills">
+            <span class="spec-tag-pill">HYDRAFACIAL</span>
+            <span class="spec-tag-pill">NEEDLING</span>
+            <span class="spec-tag-pill">LED</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- LOCATION -->
+  <section id="location">
+    <div class="loc-inner">
+      <div>
+        <h2 class="loc-title" data-i18n="loc_title">Find us in<br><strong>Prague 2</strong></h2>
+        <div class="loc-detail">
+          <div class="loc-item">
+            <div class="loc-item-icon">◎</div>
+            <div class="loc-item-text">
+              <div class="loc-item-label" data-i18n="loc_address_label">Address</div>
+              <p>Karlovo náměstí 288/17<br>120 00 Praha 2, Czech Republic</p>
+            </div>
+          </div>
+          <div class="loc-item">
+            <div class="loc-item-icon">◷</div>
+            <div class="loc-item-text">
+              <div class="loc-item-label" data-i18n="loc_hours_label">Hours</div>
+              <p data-i18n="loc_hours">Mon–Fri 9:00–21:00<br>Sat 9:00–19:00 · Sun 10:00–17:00</p>
+            </div>
+          </div>
+          <div class="loc-item">
+            <div class="loc-item-icon">✆</div>
+            <div class="loc-item-text">
+              <div class="loc-item-label" data-i18n="loc_contact_label">Contact</div>
+              <p>+420 777 123 456<br>hello@citystyle.cz</p>
+            </div>
+          </div>
+          <div class="loc-item">
+            <div class="loc-item-icon">⬡</div>
+            <div class="loc-item-text">
+              <div class="loc-item-label" data-i18n="loc_metro_label">Metro</div>
+              <p data-i18n="loc_metro">Line B · Karlovo náměstí · 2 min walk</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="map-wrapper">
+        <div class="map-overlay-tag">KARLOVO NÁM. 288/17</div>
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2561.2756803437!2d14.417862!3d50.075752!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470b94f2bea6bfad%3A0x9ccda4ef7a60b05e!2sKarlovo%20n%C3%A1m%C4%9Bst%C3%AD%20288%2F17%2C%20120%2000%20Nov%C3%A9%20M%C4%9Bsto!5e0!3m2!1sen!2scz!4v1699999999999!5m2!1sen!2scz"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="CityStyle Prague Location">
+        </iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOOKING CTA -->
+  <section id="booking">
+    <p class="booking-eyebrow reveal-up" data-i18n="booking_eyebrow">Reserve Your Experience</p>
+    <h2 class="booking-title reveal-up">
+      YOUR<br>
+      <span class="line2" data-i18n="booking_accent">transformation awaits</span>
+    </h2>
+    <p class="booking-sub reveal-up" data-i18n="booking_sub">Every appointment is a curated experience. Book online or call us — we speak Czech, English and Russian.</p>
+    <a href="tel:+420777123456" class="booking-btn reveal-up">
+      <span data-i18n="book_btn">RESERVE YOUR TIME</span>
+      <span class="btn-arrow">→</span>
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name">CITYSTYLE®</div>
+        <p class="footer-brand-desc" data-i18n="footer_desc">Premium Nail, Brow &amp; Aesthetics Studio. Karlovo náměstí 288/17, Praha 2. The art of beauty, precisely crafted.</p>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer_services">Services</div>
+        <ul class="footer-links">
+          <li><a href="#services" data-i18n="f_nails">Nail Architecture</a></li>
+          <li><a href="#services" data-i18n="f_brows">Brow Design</a></li>
+          <li><a href="#services" data-i18n="f_skin">Aesthetics</a></li>
+          <li><a href="#services" data-i18n="f_lash">Lash Extensions</a></li>
+          <li><a href="#services" data-i18n="f_ritual">Signature Ritual</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer_visit">Visit Us</div>
+        <ul class="footer-links">
+          <li><a href="#location">Karlovo nám. 288/17</a></li>
+          <li><a href="#location" data-i18n="f_hours">Opening Hours</a></li>
+          <li><a href="tel:+420777123456">+420 777 123 456</a></li>
+          <li><a href="mailto:hello@citystyle.cz">hello@citystyle.cz</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer_follow">Follow</div>
+        <ul class="footer-links">
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">TikTok</a></li>
+          <li><a href="#booking" data-i18n="f_book">Book Online</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2025 CITYSTYLE BEAUTY STUDIO · PRAGUE · ALL RIGHTS RESERVED</p>
+      <div class="footer-legal">
+        <a href="#" data-i18n="privacy">Privacy Policy</a>
+        <a href="#" data-i18n="terms">Terms</a>
+        <a href="#" data-i18n="gdpr">GDPR</a>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /content -->
+
+<script>
+// ─────────────────────────────────────────────
+// i18n Dictionary
+// ─────────────────────────────────────────────
+const i18n = {
+  en: {
+    brand: 'CITYSTYLE',
+    book_now: 'BOOK NOW',
+    hero_eyebrow: 'Prague · Karlovo Náměstí · Est. 2019',
+    hero_accent: 'Style',
+    hero_sub: 'Premium Nail, Brow & Aesthetics Studio in the heart of Prague',
+    scroll: 'SCROLL',
+    intro_tag: 'Our Philosophy',
+    intro_p1: 'Where urban edge meets <strong>artisan precision</strong>. CityStyle is Prague\'s most elevated beauty destination—',
+    intro_p2: ' a sanctuary where modern aesthetics become a form of personal architecture.',
+    services_title: 'Our <span>Services</span>',
+    c1_title: 'Premium Nail Architecture',
+    c1_desc: 'Sculptural gel extensions, nano-seal chrome powder, intricate hand-painted nail art. Each set engineered with precision tools and medical-grade materials for lasting brilliance.',
+    c1_price: 'FROM 1 200 CZK · 60–120 MIN',
+    c2_title: 'Brow & Lash Design',
+    c2_desc: 'Microblading, hybrid powder brows, lamination and tinting. Sculpted with golden-ratio geometry for your unique facial architecture.',
+    c2_price: 'FROM 2 800 CZK · 90–150 MIN',
+    c3_title: 'Advanced Aesthetics',
+    c3_desc: 'HydraFacial, microneedling, LED therapy, dermaplaning. Clinical-grade treatments delivering visible, lasting transformation.',
+    c3_price: 'FROM 2 200 CZK · 60–90 MIN',
+    c4_title: 'The CityStyle Ritual',
+    c4_desc: 'Our signature full-body treatment combining exfoliation, paraffin immersion, bespoke facial, nail sculpt and brow design in one curated 4-hour journey. The complete metamorphosis.',
+    c4_price: '8 500 CZK · THE COMPLETE EXPERIENCE',
+    c5_title: 'Lash Architecture',
+    c5_desc: 'Volume, mega-volume, hybrid and classic extensions. Russian volume fans, wet-look and Kim-K sets. Korean lash lift & tint.',
+    c5_price: 'FROM 1 800 CZK · 90 MIN',
+    c6_title: 'Luxury Hand & Foot Ritual',
+    c6_desc: 'Spa manicure and pedicure with marine collagen treatments, paraffin baths, and precision shaping. Pure indulgence, clinical results.',
+    c6_price: 'FROM 980 CZK · 60 MIN',
+    spec_tag: 'The Team',
+    spec_title: 'Our <strong>Specialists</strong>',
+    spec1_role: 'Lead Nail Architect',
+    spec2_role: 'Senior Brow Designer',
+    spec3_role: 'Aesthetics Specialist',
+    loc_title: 'Find us in<br><strong>Prague 2</strong>',
+    loc_address_label: 'Address',
+    loc_hours_label: 'Hours',
+    loc_hours: 'Mon–Fri 9:00–21:00<br>Sat 9:00–19:00 · Sun 10:00–17:00',
+    loc_contact_label: 'Contact',
+    loc_metro_label: 'Metro',
+    loc_metro: 'Line B · Karlovo náměstí · 2 min walk',
+    booking_eyebrow: 'Reserve Your Experience',
+    booking_accent: 'transformation awaits',
+    booking_sub: 'Every appointment is a curated experience. Book online or call us — we speak Czech, English and Russian.',
+    book_btn: 'RESERVE YOUR TIME',
+    footer_desc: 'Premium Nail, Brow & Aesthetics Studio. Karlovo náměstí 288/17, Praha 2. The art of beauty, precisely crafted.',
+    footer_services: 'Services',
+    footer_visit: 'Visit Us',
+    footer_follow: 'Follow',
+    f_nails: 'Nail Architecture',
+    f_brows: 'Brow Design',
+    f_skin: 'Aesthetics',
+    f_lash: 'Lash Extensions',
+    f_ritual: 'Signature Ritual',
+    f_hours: 'Opening Hours',
+    f_book: 'Book Online',
+    privacy: 'Privacy Policy',
+    terms: 'Terms',
+    gdpr: 'GDPR',
+  },
+  cz: {
+    brand: 'CITYSTYLE',
+    book_now: 'REZERVOVAT',
+    hero_eyebrow: 'Praha · Karlovo Náměstí · Zal. 2019',
+    hero_accent: 'Styl',
+    hero_sub: 'Prémiové studio pro nehty, obočí a estetiku v srdci Prahy',
+    scroll: 'ROLOVAT',
+    intro_tag: 'Naše filozofie',
+    intro_p1: 'Kde se setkává urbánní hrany s <strong>řemeslnou přesností</strong>. CityStyle je nejprestižnějším beauty cílem Prahy—',
+    intro_p2: ' svatyně, kde se moderní estetika stává formou osobní architektury.',
+    services_title: 'Naše <span>Služby</span>',
+    c1_title: 'Prémiová Architektura Nehtů',
+    c1_desc: 'Sochařské gelové prodloužení, nano-seal chromový prášek, složité ručně malované nail art. Každá sada je navržena s precizními nástroji a zdravotními materiály.',
+    c1_price: 'OD 1 200 KČ · 60–120 MIN',
+    c2_title: 'Design Obočí & Řas',
+    c2_desc: 'Microblading, hybridní práškové obočí, laminace a barvení. Tvarováno pomocí zlatého řezu pro vaši jedinečnou architekturu obličeje.',
+    c2_price: 'OD 2 800 KČ · 90–150 MIN',
+    c3_title: 'Pokročilá Estetika',
+    c3_desc: 'HydraFacial, mikrojehličkování, LED terapie, dermaplaning. Klinické procedury přinášející viditelnou, trvalou transformaci.',
+    c3_price: 'OD 2 200 KČ · 60–90 MIN',
+    c4_title: 'Rituál CityStyle',
+    c4_desc: 'Naše podpisová celodenní procedura kombinující exfoliaci, parafínové ponoření, obličej na míru, tvarování nehtů a design obočí v jedné 4hodinové cestě.',
+    c4_price: '8 500 KČ · KOMPLETNÍ ZÁŽITEK',
+    c5_title: 'Architektura Řas',
+    c5_desc: 'Objemové, mega-objemové, hybridní a klasické prodloužení. Ruské objemové vějíře, wet-look a Kim-K sety. Korejský lifting a barvení řas.',
+    c5_price: 'OD 1 800 KČ · 90 MIN',
+    c6_title: 'Luxusní Rituál Rukou & Nohou',
+    c6_desc: 'Spa manikúra a pedikúra s mořskými kolagenovými procedurami, parafínovými lázněmi a přesným tvarováním. Čistý požitek, klinické výsledky.',
+    c6_price: 'OD 980 KČ · 60 MIN',
+    spec_tag: 'Tým',
+    spec_title: 'Naše <strong>Specialistky</strong>',
+    spec1_role: 'Vedoucí Architektka Nehtů',
+    spec2_role: 'Senior Designérka Obočí',
+    spec3_role: 'Estetická Specialistka',
+    loc_title: 'Najdete nás v<br><strong>Praze 2</strong>',
+    loc_address_label: 'Adresa',
+    loc_hours_label: 'Otevírací doba',
+    loc_hours: 'Po–Pá 9:00–21:00<br>So 9:00–19:00 · Ne 10:00–17:00',
+    loc_contact_label: 'Kontakt',
+    loc_metro_label: 'Metro',
+    loc_metro: 'Linka B · Karlovo náměstí · 2 min pěšky',
+    booking_eyebrow: 'Rezervujte svůj zážitek',
+    booking_accent: 'transformace čeká',
+    booking_sub: 'Každá návštěva je kurátorský zážitek. Rezervujte online nebo nás zavolejte — mluvíme česky, anglicky a rusky.',
+    book_btn: 'REZERVOVAT ČAS',
+    footer_desc: 'Prémiové studio nehtů, obočí & estetiky. Karlovo náměstí 288/17, Praha 2. Umění krásy, precizně zpracované.',
+    footer_services: 'Služby',
+    footer_visit: 'Navštivte nás',
+    footer_follow: 'Sledujte nás',
+    f_nails: 'Architektura nehtů',
+    f_brows: 'Design obočí',
+    f_skin: 'Estetika',
+    f_lash: 'Prodloužení řas',
+    f_ritual: 'Podpisový rituál',
+    f_hours: 'Otevírací doba',
+    f_book: 'Rezervovat online',
+    privacy: 'Ochrana soukromí',
+    terms: 'Podmínky',
+    gdpr: 'GDPR',
+  },
+  ru: {
+    brand: 'CITYSTYLE',
+    book_now: 'ЗАПИСЬ',
+    hero_eyebrow: 'Прага · Карлова площадь · с 2019',
+    hero_accent: 'Стиль',
+    hero_sub: 'Премиальная студия ногтей, бровей и эстетики в сердце Праги',
+    scroll: 'ЛИСТАТЬ',
+    intro_tag: 'Наша философия',
+    intro_p1: 'Где городская эстетика встречает <strong>мастерскую точность</strong>. CityStyle — самое изысканное beauty-направление Праги—',
+    intro_p2: ' святилище, где современная эстетика становится формой личной архитектуры.',
+    services_title: 'Наши <span>Услуги</span>',
+    c1_title: 'Премиальная архитектура ногтей',
+    c1_desc: 'Скульптурные гелевые наращивания, хромовый порошок, сложные ногтевые рисунки. Каждый сет создан с медицинскими материалами для долговечного блеска.',
+    c1_price: 'ОТ 1 200 КЧ · 60–120 МИН',
+    c2_title: 'Дизайн бровей и ресниц',
+    c2_desc: 'Микроблейдинг, пудровые брови, ламинирование и окрашивание. Скульптурирование по золотому сечению для вашей уникальной архитектуры лица.',
+    c2_price: 'ОТ 2 800 КЧ · 90–150 МИН',
+    c3_title: 'Продвинутая эстетика',
+    c3_desc: 'HydraFacial, микроиглирование, LED-терапия, дермапланинг. Клинические процедуры, дающие видимые, долгосрочные изменения.',
+    c3_price: 'ОТ 2 200 КЧ · 60–90 МИН',
+    c4_title: 'Ритуал CityStyle',
+    c4_desc: 'Наша авторская процедура, объединяющая эксфолиацию, парафиновое погружение, персональный уход за лицом, скульптурирование ногтей и дизайн бровей.',
+    c4_price: '8 500 КЧ · ПОЛНЫЙ ОПЫТ',
+    c5_title: 'Архитектура ресниц',
+    c5_desc: 'Объёмные, мега-объёмные, гибридные и классические наращивания. Русские веера, wet-look и Kim-K сеты. Корейский лифтинг и окрашивание ресниц.',
+    c5_price: 'ОТ 1 800 КЧ · 90 МИН',
+    c6_title: 'Люкс ритуал рук и ног',
+    c6_desc: 'Спа-маникюр и педикюр с морским коллагеном, парафиновые ванны, точное формирование. Истинное наслаждение, клинические результаты.',
+    c6_price: 'ОТ 980 КЧ · 60 МИН',
+    spec_tag: 'Команда',
+    spec_title: 'Наши <strong>Специалисты</strong>',
+    spec1_role: 'Ведущий мастер ногтевой эстетики',
+    spec2_role: 'Старший дизайнер бровей',
+    spec3_role: 'Специалист по эстетике',
+    loc_title: 'Найдите нас в<br><strong>Праге 2</strong>',
+    loc_address_label: 'Адрес',
+    loc_hours_label: 'Часы работы',
+    loc_hours: 'Пн–Пт 9:00–21:00<br>Сб 9:00–19:00 · Вс 10:00–17:00',
+    loc_contact_label: 'Контакт',
+    loc_metro_label: 'Метро',
+    loc_metro: 'Линия B · Карлова площадь · 2 мин пешком',
+    booking_eyebrow: 'Запишитесь на процедуру',
+    booking_accent: 'ваша трансформация ждёт',
+    booking_sub: 'Каждый визит — курированный опыт. Запишитесь онлайн или позвоните нам — мы говорим по-русски, по-чешски и по-английски.',
+    book_btn: 'ЗАПИСАТЬСЯ',
+    footer_desc: 'Премиальная студия ногтей, бровей и эстетики. Карлова площадь 288/17, Прага 2. Искусство красоты, воплощённое с точностью.',
+    footer_services: 'Услуги',
+    footer_visit: 'Посетите нас',
+    footer_follow: 'Подписывайтесь',
+    f_nails: 'Архитектура ногтей',
+    f_brows: 'Дизайн бровей',
+    f_skin: 'Эстетика',
+    f_lash: 'Наращивание ресниц',
+    f_ritual: 'Авторский ритуал',
+    f_hours: 'Часы работы',
+    f_book: 'Онлайн-запись',
+    privacy: 'Политика конфиденциальности',
+    terms: 'Условия',
+    gdpr: 'GDPR',
+  }
+};
+
+let currentLang = 'en';
+
+function applyLang(lang) {
+  currentLang = lang;
+  const dict = i18n[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key] !== undefined) {
+      el.innerHTML = dict[key];
+    }
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+}
+
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+});
+
+// ─────────────────────────────────────────────
+// THREE.JS SETUP
+// ─────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 4.6);
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
+
+const dirLight1 = new THREE.DirectionalLight(0xffffff, 5.0);
+dirLight1.position.set(6, 6, 6);
+scene.add(dirLight1);
+
+const dirLight2 = new THREE.DirectionalLight(0xffb6c1, 3.5);
+dirLight2.position.set(-6, -2, -4);
+scene.add(dirLight2);
+
+const rimLight = new THREE.PointLight(0xffd4a8, 2.5, 20);
+rimLight.position.set(3, -3, 2);
+scene.add(rimLight);
+
+// Knot Geometry
+const geometry = new THREE.TorusKnotGeometry(1.2, 0.32, 180, 24, 2, 3);
+const material = new THREE.MeshStandardMaterial({
+  color: 0xe6bda2,
+  metalness: 1.0,
+  roughness: 0.03,
+});
+const knot = new THREE.Mesh(geometry, material);
+knot.position.set(0, 0, 0);
+scene.add(knot);
+
+// Background subtle particles
+const bgParticleCount = 200;
+const bgPositions = new Float32Array(bgParticleCount * 3);
+for (let i = 0; i < bgParticleCount * 3; i++) {
+  bgPositions[i] = (Math.random() - 0.5) * 20;
+}
+const bgGeo = new THREE.BufferGeometry();
+bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPositions, 3));
+const bgMat = new THREE.PointsMaterial({ color: 0xe6bda2, size: 0.015, transparent: true, opacity: 0.3 });
+const bgStars = new THREE.Points(bgGeo, bgMat);
+scene.add(bgStars);
+
+// Mouse tracking
+let mouseX = 0, mouseY = 0;
+let targetRotX = 0, targetRotY = 0;
+
+document.addEventListener('mousemove', e => {
+  mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+  mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Animation state
+let isWireframe = false;
+let knotVisible = true;
+
+// Render loop
+function animate() {
+  requestAnimationFrame(animate);
+
+  targetRotX = THREE.MathUtils.lerp(targetRotX, mouseY * 0.4, 0.05);
+  targetRotY = THREE.MathUtils.lerp(targetRotY, mouseX * 0.4, 0.05);
+
+  knot.rotation.x += (targetRotX - knot.rotation.x) * 0.05;
+  knot.rotation.y += 0.003 + (targetRotY - knot.rotation.y) * 0.05;
+
+  bgStars.rotation.y += 0.0002;
+  bgStars.rotation.x += 0.0001;
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ─────────────────────────────────────────────
+// PARTICLE CANVAS (DIAGONAL LINES)
+// ─────────────────────────────────────────────
+const pCanvas = document.getElementById('particle-canvas');
+const pCtx = pCanvas.getContext('2d');
+pCanvas.width = window.innerWidth;
+pCanvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+});
+
+class DiagParticle {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * window.innerWidth * 1.5 - window.innerWidth * 0.25;
+    this.y = Math.random() * window.innerHeight * 1.5;
+    this.speed = 1.5 + Math.random() * 3;
+    this.length = 30 + Math.random() * 80;
+    this.opacity = 0.15 + Math.random() * 0.5;
+    this.width = 0.5 + Math.random() * 1.2;
+    const colors = ['#ff8fa8', '#e6bda2', '#ffb6c1', '#f5dcc8'];
+    this.color = colors[Math.floor(Math.random() * colors.length)];
+  }
+  update() {
+    this.x += this.speed * 0.707;
+    this.y -= this.speed * 0.707;
+    if (this.x > window.innerWidth * 1.2 || this.y < -200) this.reset();
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.width;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(this.x + this.length * 0.707, this.y - this.length * 0.707);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+const diagParticles = [];
+for (let i = 0; i < 120; i++) {
+  diagParticles.push(new DiagParticle());
+}
+
+let particlesActive = false;
+let particleAnimId = null;
+
+function animateParticles() {
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+  diagParticles.forEach(p => { p.update(); p.draw(pCtx); });
+  if (particlesActive) particleAnimId = requestAnimationFrame(animateParticles);
+}
+
+function startParticles() {
+  if (particlesActive) return;
+  particlesActive = true;
+  pCanvas.style.opacity = '1';
+  animateParticles();
+}
+
+function stopParticles() {
+  particlesActive = false;
+  cancelAnimationFrame(particleAnimId);
+  gsap.to(pCanvas, { opacity: 0, duration: 1 });
+}
+
+// ─────────────────────────────────────────────
+// GSAP SCROLL TRIGGERS
+// ─────────────────────────────────────────────
+gsap.registerPlugin(ScrollTrigger);
+
+// Hero entrance
+gsap.timeline({ delay: 0.3 })
+  .to('#hero-eyebrow', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' })
+  .to('#hero-title',   { opacity: 1, y: 0, duration: 1.0, ease: 'power3.out' }, '-=0.4')
+  .to('#hero-sub',     { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '-=0.5')
+  .to('#hero-scroll',  { opacity: 1,        duration: 0.6, ease: 'power2.out' }, '-=0.2');
+
+// Camera cinematic zoom on scroll
+ScrollTrigger.create({
+  trigger: '#intro',
+  start: 'top bottom',
+  end: 'bottom top',
+  scrub: 1.5,
+  onUpdate: self => {
+    const p = self.progress;
+    gsap.to(camera.position, { z: 4.6 - p * 1.5, duration: 0.3, ease: 'none' });
+  }
+});
+
+// Intro text
+gsap.from('.intro-statement', {
+  scrollTrigger: { trigger: '#intro', start: 'top 70%', end: 'top 30%', scrub: 1 },
+  opacity: 0, y: 60, ease: 'power3.out'
+});
+
+// Services: wireframe + particle mode
+ScrollTrigger.create({
+  trigger: '#services',
+  start: 'top 60%',
+  onEnter: () => {
+    gsap.to(material, { wireframe: true, duration: 0.01 });
+    material.wireframe = true;
+    material.color.set(0xff8fa8);
+    startParticles();
+    animateDataPulses();
+  },
+  onLeaveBack: () => {
+    material.wireframe = false;
+    material.color.set(0xe6bda2);
+    stopParticles();
+  }
+});
+
+ScrollTrigger.create({
+  trigger: '#specialists',
+  start: 'top 70%',
+  onEnter: () => {
+    material.wireframe = false;
+    material.color.set(0xe6bda2);
+    stopParticles();
+    gsap.to(camera.position, { z: 4.6, duration: 1.5, ease: 'power2.out' });
+  }
+});
+
+// Bento cards stagger reveal
+gsap.from('.bento-card', {
+  scrollTrigger: { trigger: '.bento-grid', start: 'top 80%', end: 'top 20%', scrub: 1 },
+  opacity: 0, y: 60, stagger: 0.1, ease: 'power3.out'
+});
+
+// Specialists
+gsap.from('.spec-card', {
+  scrollTrigger: { trigger: '.specialists-grid', start: 'top 80%', end: 'top 30%', scrub: 1 },
+  opacity: 0, y: 80, stagger: 0.15, ease: 'power3.out'
+});
+
+gsap.from('.spec-header', {
+  scrollTrigger: { trigger: '#specialists', start: 'top 80%' },
+  opacity: 0, y: 40, duration: 0.9, ease: 'power3.out'
+});
+
+// Booking reveals
+document.querySelectorAll('.reveal-up').forEach((el, i) => {
+  gsap.from(el, {
+    scrollTrigger: { trigger: el, start: 'top 85%' },
+    opacity: 0, y: 50, duration: 0.9, delay: i * 0.12, ease: 'power3.out'
+  });
+});
+
+// Location section
+gsap.from('.loc-inner > *', {
+  scrollTrigger: { trigger: '#location', start: 'top 75%', end: 'top 30%', scrub: 1 },
+  opacity: 0, y: 50, stagger: 0.2, ease: 'power3.out'
+});
+
+// ─────────────────────────────────────────────
+// DATA PULSE ANIMATIONS
+// ─────────────────────────────────────────────
+const pulseLabels = ['#dp1','#dp2','#dp3','#dp4'];
+const pulseTexts = { en: ['PREMIUM NAILS','BROW ART','GLOW SKIN','CITYSTYLE PRAGUE'],
+                     cz: ['PRÉMIOVÉ NEHTY','DESIGN OBOČÍ','ZÁŘE PLETI','CITYSTYLE PRAHA'],
+                     ru: ['НОГТЕВОЙ АРТ','ДИЗАЙН БРОВЕЙ','СИЯНИЕ КОЖИ','CITYSTYLE ПРАГА'] };
+
+function animateDataPulses() {
+  pulseLabels.forEach((sel, i) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    const startX = 20 + Math.random() * (window.innerWidth * 0.5);
+    const startY = window.innerHeight * 0.8 + Math.random() * (window.innerHeight * 0.2);
+    el.style.left = startX + 'px';
+    el.style.top = startY + 'px';
+    gsap.killTweensOf(el);
+    gsap.timeline({ repeat: particlesActive ? -1 : 0, delay: i * 0.6 })
+      .set(el, { opacity: 0, x: 0, y: 0 })
+      .to(el, { opacity: 1, duration: 0.3 })
+      .to(el, { x: window.innerWidth * 0.6, y: -window.innerHeight * 0.9, duration: 3 + Math.random() * 2, ease: 'power1.inOut' }, '<')
+      .to(el, { opacity: 0, duration: 0.5 }, '-=0.8');
+  });
+}
+
+// ─────────────────────────────────────────────
+// BENTO TILT
+// ─────────────────────────────────────────────
+document.querySelectorAll('[data-tilt]').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    card.style.transform = `perspective(800px) rotateY(${dx * 5}deg) rotateX(${-dy * 5}deg) translateZ(4px)`;
+    card.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width * 100) + '%');
+    card.style.setProperty('--my', ((e.clientY - rect.top) / rect.height * 100) + '%');
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+  });
+});
+
+// ─────────────────────────────────────────────
+// SCROLL PROGRESS BAR
+// ─────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const scrollTop = window.scrollY;
+  const docHeight = document.body.scrollHeight - window.innerHeight;
+  const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  document.getElementById('scroll-progress').style.width = pct + '%';
+});
+
+// ─────────────────────────────────────────────
+// NAVBAR SCROLL EFFECT
+// ─────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('navbar');
+  if (window.scrollY > 80) {
+    nav.style.borderBottomColor = 'rgba(230,189,162,0.15)';
+    nav.style.background = 'rgba(8,6,8,0.85)';
+  } else {
+    nav.style.borderBottomColor = 'rgba(230,189,162,0.1)';
+    nav.style.background = 'rgba(8,6,8,0.55)';
+  }
+});
+
+// Update pulse text on lang change
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    pulseLabels.forEach((sel, i) => {
+      const el = document.querySelector(sel);
+      if (el) el.textContent = (pulseTexts[btn.dataset.lang] || pulseTexts.en)[i];
+    });
+  });
+});
+
+// Initial lang
+applyLang('en');
+</script>
+</body>
+</html>
